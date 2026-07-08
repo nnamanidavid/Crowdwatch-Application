@@ -1,0 +1,35 @@
+# --- Frontend ---
+# Multi-stage build: Stage 1 compiles the React app into static files,
+# Stage 2 serves those static files with Nginx. The final image never
+# contains Node.js or node_modules — just the compiled output and Nginx.
+# This keeps the production image small and removes build tools from
+# what actually ships.
+
+# Stage 1: Build
+FROM node:20-alpine AS build
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+
+# Vite bakes environment variables into the compiled JS at build time
+# (this is different from backend services, which read env vars at
+# runtime). VITE_GATEWAY_URL must be the URL the USER'S BROWSER can
+# reach — not an internal Docker/Kubernetes network name.
+ARG VITE_GATEWAY_URL=http://localhost:3004
+ENV VITE_GATEWAY_URL=$VITE_GATEWAY_URL
+
+RUN npm run build
+
+# Stage 2: Serve
+FROM nginx:alpine
+
+COPY --from=build /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

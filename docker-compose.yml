@@ -1,0 +1,185 @@
+services:
+  # ── Databases ──────────────────────────────────────────────────────
+  # One Postgres container per service, matching the "each service owns
+  # its own database" rule from the architecture. Reports Service uses
+  # a PostGIS-enabled image since it needs geo queries.
+
+  postgres-auth:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: crowdwatch
+      POSTGRES_PASSWORD: crowdwatch
+      POSTGRES_DB: auth
+    ports:
+      - "5433:5432"
+    volumes:
+      - auth-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crowdwatch"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres-reports:
+    image: postgis/postgis:16-3.4-alpine
+    environment:
+      POSTGRES_USER: crowdwatch
+      POSTGRES_PASSWORD: crowdwatch
+      POSTGRES_DB: reports
+    ports:
+      - "5434:5432"
+    volumes:
+      - reports-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crowdwatch"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres-media:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: crowdwatch
+      POSTGRES_PASSWORD: crowdwatch
+      POSTGRES_DB: media
+    ports:
+      - "5435:5432"
+    volumes:
+      - media-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crowdwatch"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres-notification:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: crowdwatch
+      POSTGRES_PASSWORD: crowdwatch
+      POSTGRES_DB: notification
+    ports:
+      - "5436:5432"
+    volumes:
+      - notification-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crowdwatch"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── Local AWS (SQS + S3) ───────────────────────────────────────────
+  # LocalStack simulates AWS services so the whole system runs without
+  # a real AWS account. init-aws.sh creates the queue + bucket on boot.
+
+  localstack:
+    image: localstack/localstack:3
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: sqs,s3
+      DEFAULT_REGION: us-east-1
+    volumes:
+      - "./localstack-init:/etc/localstack/init/ready.d"
+      - localstack-data:/var/lib/localstack
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Application services ───────────────────────────────────────────
+
+  auth-service:
+    build: ./auth-service
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://crowdwatch:crowdwatch@postgres-auth:5432/auth
+      JWT_SECRET: ${JWT_SECRET:-dev_secret_change_me}
+    depends_on:
+      postgres-auth:
+        condition: service_healthy
+
+  reports-service:
+    build: ./reports-service
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      DATABASE_URL: postgres://crowdwatch:crowdwatch@postgres-reports:5432/reports
+      JWT_SECRET: ${JWT_SECRET:-dev_secret_change_me}
+      AWS_REGION: us-east-1
+      AWS_ENDPOINT_URL: http://localstack:4566
+      REPORTS_QUEUE_URL: http://localstack:4566/000000000000/crowdwatch-reports
+    depends_on:
+      postgres-reports:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+
+  media-service:
+    build: ./media-service
+    ports:
+      - "3002:3002"
+    environment:
+      PORT: 3002
+      DATABASE_URL: postgres://crowdwatch:crowdwatch@postgres-media:5432/media
+      JWT_SECRET: ${JWT_SECRET:-dev_secret_change_me}
+      AWS_REGION: us-east-1
+      AWS_ENDPOINT_URL: http://localstack:4566
+      S3_BUCKET_NAME: crowdwatch-media
+    depends_on:
+      postgres-media:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+
+  notification-service:
+    build: ./notification-service
+    ports:
+      - "3003:3003"
+    environment:
+      PORT: 3003
+      DATABASE_URL: postgres://crowdwatch:crowdwatch@postgres-notification:5432/notification
+      AWS_REGION: us-east-1
+      AWS_ENDPOINT_URL: http://localstack:4566
+      REPORTS_QUEUE_URL: http://localstack:4566/000000000000/crowdwatch-reports
+    depends_on:
+      postgres-notification:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+
+  gateway-service:
+    build: ./gateway-service
+    ports:
+      - "3004:3004"
+    environment:
+      PORT: 3004
+      JWT_SECRET: ${JWT_SECRET:-dev_secret_change_me}
+      AUTH_SERVICE_URL: http://auth-service:3000
+      REPORTS_SERVICE_URL: http://reports-service:3001
+      MEDIA_SERVICE_URL: http://media-service:3002
+    depends_on:
+      - auth-service
+      - reports-service
+      - media-service
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_GATEWAY_URL: http://localhost:3004
+    ports:
+      - "8080:80"
+    depends_on:
+      - gateway-service
+
+volumes:
+  auth-db-data:
+  reports-db-data:
+  media-db-data:
+  notification-db-data:
+  localstack-data:
