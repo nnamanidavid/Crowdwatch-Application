@@ -65,7 +65,6 @@ the whole system runs end-to-end on your machine.
 
 ```bash
 cp .env.example .env
-# Edit .env and set a real JWT_SECRET if you want (a dev default is provided)
 ```
 
 **Add one line to your hosts file** (required for photo uploads to work
@@ -122,8 +121,8 @@ This one line is the only manual system change required.
 ## Stopping everything
 
 ```bash
-docker compose down          # stops containers, keeps data
-docker compose down -v       # stops containers AND deletes all data
+docker compose down          
+docker compose down -v       
 ```
 
 ## What's Deliberately Not Here
