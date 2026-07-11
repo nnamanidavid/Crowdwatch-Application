@@ -15,16 +15,13 @@ RUN npm install
 
 COPY . .
 
-# Vite bakes environment variables into the compiled JS at build time
-# (this is different from backend services, which read env vars at
-# runtime). VITE_GATEWAY_URL must be the URL the USER'S BROWSER can
-# reach — not an internal Docker/Kubernetes network name.
+
 ARG VITE_GATEWAY_URL=http://localhost:3004
 ENV VITE_GATEWAY_URL=$VITE_GATEWAY_URL
 
 RUN npm run build
 
-# Stage 2: Serve
+
 FROM nginx:alpine
 
 COPY --from=build /app/dist /usr/share/nginx/html

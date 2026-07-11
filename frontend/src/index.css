@@ -1,0 +1,66 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+/* Base style resets and scrollbars */
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #fcfcfd;
+  color: #111827;
+  font-family: var(--font-sans);
+}
+
+/* Custom styles for Leaflet elements to blend them beautifully with the UI */
+.leaflet-container {
+  font-family: var(--font-sans) !important;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.08), 0 2px 8px -1px rgba(0, 0, 0, 0.04);
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 12px !important;
+  padding: 4px !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid #f3f4f6 !important;
+}
+
+.leaflet-popup-tip {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+}
+
+.leaflet-bar {
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+  border-radius: 8px !important;
+  overflow: hidden;
+}
+
+.leaflet-bar a {
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+  color: #1f2937 !important;
+  transition: all 0.2s;
+}
+
+.leaflet-bar a:hover {
+  background-color: #f9fafb !important;
+  color: #000000 !important;
+}
+
+/* Hide leaflet attribution unless hovered for maximum screen cleanliness */
+.leaflet-control-attribution {
+  opacity: 0.1;
+  transition: opacity 0.3s;
+}
+.leaflet-control-attribution:hover {
+  opacity: 1.0;
+}
+

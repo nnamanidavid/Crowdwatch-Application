@@ -1,0 +1,6 @@
+{
+  "name": "Crowdwatch",
+  "description": "A real-time local incident reporting platform. Users report incidents with details, photos, and GPS locations, with nearby subscriptions notified.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
