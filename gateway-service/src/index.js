@@ -5,16 +5,14 @@ const proxyRoutes = require('./routes/proxy.routes');
 const app = express();
 const PORT = process.env.PORT || 3004;
 
+// These two lines are critical — without them the gateway can't
+// read the request body to forward it to upstream services
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Health check — ALB needs this to mark the target as healthy.
 app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }));
 
-// Auth middleware runs on every request before proxying.
-// Public routes (/auth/signup, /auth/login) are whitelisted inside the middleware.
 app.use(authenticate);
-
-// Route to upstream services
 app.use('/', proxyRoutes);
 
 app.use((req, res) => res.status(404).json({ error: 'Route not found.' }));

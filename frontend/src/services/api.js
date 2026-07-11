@@ -4,7 +4,7 @@ import axios from 'axios';
 // The baseURL points to /api which Vite proxies to the Gateway in dev,
 // and to your real Gateway URL in production via VITE_GATEWAY_URL env var.
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: '/api',  
 });
 
 // Request interceptor — runs before every request.
